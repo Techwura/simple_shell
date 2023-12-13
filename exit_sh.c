@@ -17,7 +17,7 @@ int exit_shell(data_shell *datash)
 	if (datash->args[1] != NULL)
 	{
 		u = _atoi(datash->args[1]);
-		id = _id(datash->args[1]);
+		id = _isdigit(datash->args[1]);
 		sl = _strlen(datash->args[1]);
 		b = u > (unsigned int)INT_MAX;
 		if (!id || sl > 10 || b)
