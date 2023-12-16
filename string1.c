@@ -1,91 +1,116 @@
 #include "shell.h"
 
 /**
- * _strcpy - the entry point.
- * Description - copies a string.
- * @dest: the destination.
- * @src: the source.
- * Return: pointer to destination.
- */
-
-char *_strcpy(char *dest, char *src)
-{
-	int m = 0;
-
-	if (dest == src || src == 0)
-		return (dest);
-	while (src[m])
-	{
-		dest[m] = src[m];
-		m++;
-	}
-	dest[m] = 0;
-	return (dest);
-}
-
-/**
  * _strdup - the entry point.
- * Description - duplicates a string.
- * @str: the string to duplicate.
- * Return: pointer to the duplicated string.
+ * Decription - function that returns a pointer to a newly
+ * allocated space in memory,
+ * @str: the string.
+ * Return: duplicated string.
  */
 
-char *_strdup(const char *str)
+char *_strdup(char *str)
 {
-	int m = 0;
-	char *r;
+	size_t m, n = 0;
+	char *s;
+	char *t;
 
+	/* is the string empty? */
 	if (str == NULL)
-		return (NULL);
-	while (*str++)
-		m++;
-	r = malloc(sizeof(char) * (m + 1));
-	if (!r)
-		return (NULL);
-	for (m++; m--;)
-		r[m] = *--str;
-	return (r);
+		return (NULL); /* ah! it is, return NULL */
+
+	/* Create a temporary pointer to keep original string unchanged */
+	t = str;
+
+	while (*t)
+	{
+		t++;
+		n++;
+	}
+	n += 1; /* Add 1 for the null terminator */
+
+	s = (char *)malloc(n * sizeof(char));
+	if (s == NULL)
+		return (NULL); /* Oops, mem. allocation failed */
+
+	for (m = 0; m < n; ++m)
+		s[m] = str[m];
+
+	return (s); /* return pointer to duplicated string */
+}
+
+
+/**
+ * _strchr - the entry point.
+ * Decription - function that locates a character in a string.
+ * @str: the string.
+ * @c: the character to be located.
+ * Return: @s.
+ */
+
+char *_strchr(char *str, char c)
+{
+	/* is the string empty? */
+	if (str == NULL)
+		return (NULL); /* it is, return NULL */
+
+	while (*str != '\0')
+	{
+		if (*str == c)
+		{
+			/* return pointer to matched char */
+			return (str);
+		}
+		str++;
+	}
+
+	if (c == '\0')
+		return (str);
+
+	return (NULL);
+}
+
+
+/**
+ * _strncmp - the entry point.
+ * Description - function that compares two strings up to a specified len.
+ * @str1: 1st string.
+ * @str2: 2nd string.
+ * @n: The maximum number of char to compare.
+ * Return: 0 == specified length, otherwise
+ * the difference between the first non-matching characters.
+ */
+
+int _strncmp(const char *str1, const char *str2, size_t n)
+{
+	size_t m = 0;
+
+	while (m < n && (str1[m] != '\0' || str2[m] != '\0'))
+	{
+		if (str1[m] != str2[m])
+		{
+			return ((int)(unsigned char)str1[m] - (int)(unsigned char)str2[m]);
+		}
+		++m;
+	}
+
+	return (0);
 }
 
 /**
- * _puts - the entry point.
- * Description - prints an input string.
- * @str: the string to be printed.
- * Return: .
+ * _strlen - the entry point.
+ * Description - function that returns the len of a string.
+ * @s: the parameter.
+ * Return: string length.
  */
 
-void _puts(char *str)
+int _strlen(const char *s)
 {
-	int m = 0;
+	int c = 0;
 
-	if (!str)
-		return;
-	while (str[m] != '\0')
+	while (*s != '\0')
 	{
-		_putchar(str[m]);
-		m++;
+		s++;
+		c++;
 	}
-}
-
-/**
- * _putchar - the entry point.
- * Description - writes the char c to stdout.
- * @c: The char to print.
- * Return: Always 1 on success,Otherwise on error, -1 is returned,
- * and errno is set appropriately.
- */
-
-int _putchar(char c)
-{
-	static int m;
-	static char buf[WRITE_BUF_SIZE];
-
-	if (c == BUF_FLUSH || m >= WRITE_BUF_SIZE)
-	{
-		write(1, buf, m);
-		m = 0;
-	}
-	if (c != BUF_FLUSH)
-		buf[m++] = c;
-	return (1);
+	return (c);
 }

@@ -1,19 +1,24 @@
 #include "shell.h"
 
 /**
- * bfree - the entry point.
- * Description - frees a pointer and NULLs the address.
- * @ptr: address of the pointer to free.
- * Return: Always 1 if freed, otherwise 0.
+ * _memcpy - the entry point.
+ * Description - Function that copies memory area from source to destination.
+ * @dest: destination memory area.
+ * @src: source memory area.
+ * @n: number of bytes to copy.
+ * Return: destination memory area (dest).
  */
 
-int bfree(void **ptr)
+void *_memcpy(void *dest, const void *src, size_t n)
 {
-	if (ptr && *ptr)
+	size_t m;
+
+	char *td = (char *) dest;
+	const char *ts = (const char *) src;
+
+	for (m = 0; m < n; m++)
 	{
-		free(*ptr);
-		*ptr = NULL;
-		return (1);
+		td[m] = ts[m];
 	}
-	return (0);
+	return (dest);
 }

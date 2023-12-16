@@ -1,88 +1,154 @@
 #include "shell.h"
 
 /**
- * is_cmd - the entry point.
- * Description - determines if a file is an executable command.
- * @info: the info struct.
- * @path: path to the file.
- * Return: Always 1 if true, otherwise 0.
+ * parse_input - the entry point.
+ * Description - Parse user input and execute commands.
+ * @lsh: relevant information.
+ * Return: Exit code of the last executed command or -1 on failure.
  */
 
-int is_cmd(info_t *info, char *path)
+int parse_input(shell_t *lsh)
 {
-	struct stat st;
-	(void)info;
+	size_t m;
 
-	if (!path || stat(path, &st))
+	if (*lsh->user_input == '\n' || *lsh->user_input == '#')
 		return (0);
-	if (st.st_mode & S_IFREG)
+
+	/* remove comments if any */
+	lsh->user_input = remove_comments(lsh->user_input);
+
+	lsh->command_array = _strtok(lsh->user_input, "\n");
+	if (lsh->command_array == NULL)
 	{
-		return (1);
+		return (-1);
 	}
-	return (0);
-}
 
-/**
- * dup_chars - the entry point.
- * Description - duplicates characters.
- * @pathstr: the PATH string.
- * @start: beginning index.
- * @stop: stopping index.
- * Return: pointer to new buffer.
- */
-
-char *dup_chars(char *pathstr, int start, int stop)
-{
-	static char buf[1024];
-	int m = 0, n = 0;
-
-	for (n = 0, m = start; m < stop; m++)
-		if (pathstr[m] != ':')
-			buf[n++] = pathstr[m];
-	buf[n] = 0;
-	return (buf);
-}
-
-/**
- * find_path - the entry point.
- * Description - finds this cmd in the PATH string.
- * @info: info struct.
- * @pathstr: PATH string.
- * @cmd: cmd to find.
- * Return: full path of cmd if found or NULL.
- */
-
-char *find_path(info_t *info, char *pathstr, char *cmd)
-{
-	int m = 0, cp = 0;
-	char *p;
-
-	if (!pathstr)
-		return (NULL);
-	if ((_strlen(cmd) > 2) && starts_with(cmd, "./"))
+	for (m = 0; lsh->command_array[m] != NULL; m++)
 	{
-		if (is_cmd(info, cmd))
-			return (cmd);
-	}
-	while (1)
-	{
-		if (!pathstr[m] || pathstr[m] == ':')
+		lsh->token = lsh->command_array[m];
+
+		lsh->tokens = _strtok(lsh->token, ";\n");
+		if (lsh->tokens == NULL)
 		{
-			p = dup_chars(pathstr, cp, m);
-			if (!*p)
-				_strcat(p, cmd);
+			fprintf(stderr, "Couldn't allocate memory\n");
+			safefree(lsh->command_array);
+			return (-1);
+		}
+
+		lsh->exit_code = parser(lsh);
+		free_string(&lsh->tokens);
+	}
+
+	free_string(&lsh->command_array);
+	return (lsh->exit_code);
+}
+
+/**
+ * parser - the entry point.
+ * Description - Function that Parse and executes tokens.
+ * @lsh: relevant information.
+ * Return: Exit code of the last executed command or -1 on failure.
+ */
+
+int parser(shell_t *lsh)
+{
+	size_t m;
+
+	for (m = 0; lsh->tokens[m] != NULL; m++)
+	{
+		lsh->exit_code = execute_tokens(lsh, m);
+		safefree(lsh->tokens[m]);
+	}
+	free_string(&lsh->tokens);
+
+	return (lsh->exit_code);
+}
+
+/**
+ * execute_tokens - the entry point.
+ * Description - function that executes individual tokens.
+ * @lsh: relevant information.
+ * @index: Index of the token in the token array.
+ * Return: Exit code of the executed command or -1 on failure.
+ */
+
+int execute_tokens(shell_t *lsh, size_t index)
+{
+		lsh->tokenized_commands = _strtok(lsh->tokens[index], NULL);
+		if (lsh->tokenized_commands == NULL)
+		{
+			return (0);
+		}
+		if (lsh->tokenized_commands[0] != NULL && lsh->tokenized_commands != NULL)
+		{
+			aux_parser(lsh, index);
+		}
+		else
+		{
+			free_string(&lsh->tokenized_commands);
+		}
+
+		if (lsh->tokenized_commands != NULL)
+		{
+			safefree(lsh->tokenized_commands);
+		}
+
+
+		safefree(lsh->tokens[index]);
+		return (lsh->exit_code);
+}
+
+/**
+ * cmd_not_found - the entry point.
+ * Description - function that handle command not found error.
+ * @lsh: Pointer to the shell structure containing relevant information.
+ * Return: Exit code for command not found (127).
+ */
+
+int cmd_not_found(shell_t *lsh)
+{
+	dprintf(STDERR_FILENO, "%s: %lu: %s: not found\n", lsh->prog_name,
+			lsh->cmd_count, lsh->tokenized_commands[0]);
+
+	return (127); /* command not found */
+}
+
+/**
+ * aux_parser - the entry pointer.
+ * Description - Auxiliary function to parse and execute commands.
+ * @lsh: relevant information.
+ * @index: Index of the tokenized command to be processed.
+ */
+
+void aux_parser(shell_t *lsh, size_t index __attribute__((unused)))
+{
+			lsh->exit_code = execute_builtin(lsh);
+			if (lsh->exit_code != 18)
+			{
+				free_string(&lsh->tokenized_commands);
+				return;
+			}
+
+			if (lsh->path_list != NULL && !_strchr(lsh->tokenized_commands[0], '/'))
+			{
+				lsh->exit_code = execute_with_path(lsh);
+				if (lsh->exit_code == -1)
+				{
+					lsh->exit_code = cmd_not_found(lsh);
+				}
+			}
 			else
 			{
-				_strcat(p, "/");
-				_strcat(p, cmd);
+				if (access(lsh->tokenized_commands[0], X_OK) == 0 &&
+				_strchr(lsh->tokenized_commands[0], '/'))
+				{
+					lsh->exit_code = execute_command(lsh->tokenized_commands[0], lsh);
+				}
+				else
+				{
+					lsh->exit_code = cmd_not_found(lsh);
+				}
 			}
-			if (is_cmd(info, p))
-				return (p);
-			if (!pathstr[m])
-				break;
-			cp = m;
-		}
-		m++;
-	}
-	return (NULL);
+
+			free_string(&lsh->tokenized_commands);
 }
